@@ -35,6 +35,7 @@ help:
 	@echo "Traffic splitting (weighted backends):"
 	@echo "  make deploy-traffic      # Apply manifests"
 	@echo "  make test-traffic        # Issue 20 requests and print server info"
+	@echo "  make update-traffic-weights # Update backend weights (e.g., V1=80 V2=20)"
 	@echo "  make undeploy-traffic    # Delete manifests"
 	@echo ""
 	@echo "Request header filter (RequestHeaderModifier):"
@@ -56,6 +57,7 @@ help:
 	@echo "  make print-gatewayclasses# Show GatewayClasses"
 	@echo "  make print-gateways      # Show all Gateways"
 	@echo "  make print-httproutes    # Show all HTTPRoutes"
+	@echo "  make print-grpcroutes    # Show all GRPCRoutes"
 	@echo "  make clean               # Delete all example resources"
 	@echo ""
 	@echo "Note: Ensure Gateway API CRDs and the NGINX Gateway Fabric controller are installed."
@@ -73,6 +75,10 @@ print-gateways: ## List Gateways in all namespaces
 .PHONY: print-httproutes
 print-httproutes: ## List HTTPRoutes in all namespaces
 	$(KUBECTL) get httproutes -A
+
+.PHONY: print-grpcroutes
+print-grpcroutes: ## List GRPCRoutes in all namespaces
+	$(KUBECTL) get grpcroutes -A
 
 ###############################################################################
 # 0) Basic (cafe-style routing)
@@ -152,6 +158,14 @@ test-traffic: ## Test traffic splitting (runs multiple requests and prints serve
 .PHONY: undeploy-traffic
 undeploy-traffic: ## Undeploy traffic splitting example
 	-$(KUBECTL) delete -f examples/traffic-splitting/manifest.yaml --ignore-not-found
+
+.PHONY: update-traffic-weights
+update-traffic-weights: ## Update HTTPRoute backend weights for traffic example (set V1 and V2, e.g., make update-traffic-weights V1=80 V2=20)
+	@test -n "$(V1)" && test -n "$(V2)" || (echo "Usage: make update-traffic-weights V1=<v1> V2=<v2>"; exit 1)
+	@echo "Updating weights: hello-v1=$(V1), hello-v2=$(V2)"
+	$(KUBECTL) -n gateway-traffic-example patch httproute hello-traffic-route --type='json' -p '[{"op":"replace","path":"/spec/rules/0/backendRefs/0/weight","value":$(V1)},{"op":"replace","path":"/spec/rules/0/backendRefs/1/weight","value":$(V2)}]'
+	@echo "Updated. Current backendRefs:"
+	$(KUBECTL) -n gateway-traffic-example get httproute hello-traffic-route -o json | jq -r '.spec.rules[0].backendRefs[] | "\(.name) weight=\(.weight)"'
 
 ###############################################################################
 # 4) Request header filter (RequestHeaderModifier)

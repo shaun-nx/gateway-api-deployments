@@ -36,6 +36,7 @@ Utility commands:
 - List GatewayClasses: `make print-gatewayclasses`
 - List Gateways: `make print-gateways`
 - List HTTPRoutes: `make print-httproutes`
+- List GRPCRoutes: `make print-grpcroutes`
 
 Examples and commands
 ---------------------
@@ -99,6 +100,8 @@ Examples and commands
   - Deploy: `make deploy-traffic`
   - Test: `make test-traffic`
     - Issues 20 requests and prints server info lines from the HTML response.
+  - Update weights: `make update-traffic-weights V1=80 V2=20`
+    - Patches the HTTPRoute backendRefs weights for hello-v1 and hello-v2. Example: `make update-traffic-weights V1=90 V2=10`
   - Undeploy: `make undeploy-traffic`
 
 4) Request header filter (RequestHeaderModifier)
@@ -170,7 +173,7 @@ Troubleshooting
   - `kubectl get gatewayclasses`
   - `kubectl get pods -A | grep -i nginx-gateway`
 - Inspect Gateway/HTTPRoute status:
-  - `kubectl get gateways,httproutes -A`
+  - `kubectl get gateways,httproutes,grpcroutes -A`
   - `kubectl describe httproute -n <ns> <name>`
 - Check that the Gateway data plane is reachable at the host/port you are using (nip.io hostnames assume 127.0.0.1).
 - Cross-namespace routing:
