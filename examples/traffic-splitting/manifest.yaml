@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-traffic-example
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-v1
+  namespace: gateway-traffic-example
+  labels:
+    app: hello
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: hello
+        version: v1
+    spec:
+      containers:
+        - name: hello
+          image: nginxdemos/hello:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-v1
+  namespace: gateway-traffic-example
+  labels:
+    app: hello
+    version: v1
+spec:
+  selector:
+    app: hello
+    version: v1
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-v2
+  namespace: gateway-traffic-example
+  labels:
+    app: hello
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: hello
+        version: v2
+    spec:
+      containers:
+        - name: hello
+          image: nginxdemos/hello:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-v2
+  namespace: gateway-traffic-example
+  labels:
+    app: hello
+    version: v2
+spec:
+  selector:
+    app: hello
+    version: v2
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: hello-traffic-gw
+  namespace: gateway-traffic-example
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: traffic.127.0.0.1.nip.io
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hello-traffic-route
+  namespace: gateway-traffic-example
+spec:
+  parentRefs:
+    - name: hello-traffic-gw
+  hostnames:
+    - traffic.127.0.0.1.nip.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: hello-v1
+          port: 80
+          weight: 70
+        - name: hello-v2
+          port: 80
+          weight: 30

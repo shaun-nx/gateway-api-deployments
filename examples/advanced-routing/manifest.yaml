@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-advanced-example
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-v1
+  namespace: gateway-advanced-example
+  labels:
+    app: hello
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: hello
+        version: v1
+    spec:
+      containers:
+        - name: hello
+          image: nginxdemos/hello:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-v1
+  namespace: gateway-advanced-example
+  labels:
+    app: hello
+    version: v1
+spec:
+  selector:
+    app: hello
+    version: v1
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-v2
+  namespace: gateway-advanced-example
+  labels:
+    app: hello
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: hello
+        version: v2
+    spec:
+      containers:
+        - name: hello
+          image: nginxdemos/hello:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-v2
+  namespace: gateway-advanced-example
+  labels:
+    app: hello
+    version: v2
+spec:
+  selector:
+    app: hello
+    version: v2
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: hello-advanced-gw
+  namespace: gateway-advanced-example
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: advanced.127.0.0.1.nip.io
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hello-advanced-route
+  namespace: gateway-advanced-example
+spec:
+  parentRefs:
+    - name: hello-advanced-gw
+  hostnames:
+    - advanced.127.0.0.1.nip.io
+  rules:
+    # Most specific rule first: GET with header X-Use: v2 -> v2
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          method: GET
+          headers:
+            - name: X-Use
+              value: v2
+      backendRefs:
+        - name: hello-v2
+          port: 80
+    # POST / -> v2
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          method: POST
+      backendRefs:
+        - name: hello-v2
+          port: 80
+    # Default GET / -> v1
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          method: GET
+      backendRefs:
+        - name: hello-v1
+          port: 80

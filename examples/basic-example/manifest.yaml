@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-basic-example
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coffee
+  namespace: gateway-basic-example
+  labels:
+    app: cafe
+    component: coffee
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cafe
+      component: coffee
+  template:
+    metadata:
+      labels:
+        app: cafe
+        component: coffee
+    spec:
+      containers:
+        - name: coffee
+          image: nginxdemos/hello:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coffee
+  namespace: gateway-basic-example
+  labels:
+    app: cafe
+    component: coffee
+spec:
+  selector:
+    app: cafe
+    component: coffee
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tea
+  namespace: gateway-basic-example
+  labels:
+    app: cafe
+    component: tea
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cafe
+      component: tea
+  template:
+    metadata:
+      labels:
+        app: cafe
+        component: tea
+    spec:
+      containers:
+        - name: tea
+          image: nginxdemos/hello:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tea
+  namespace: gateway-basic-example
+  labels:
+    app: cafe
+    component: tea
+spec:
+  selector:
+    app: cafe
+    component: tea
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cafe-gw
+  namespace: gateway-basic-example
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: basic.127.0.0.1.nip.io
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cafe-route
+  namespace: gateway-basic-example
+spec:
+  parentRefs:
+    - name: cafe-gw
+  hostnames:
+    - basic.127.0.0.1.nip.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /coffee
+      backendRefs:
+        - name: coffee
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /tea
+      backendRefs:
+        - name: tea
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: coffee
+          port: 80
