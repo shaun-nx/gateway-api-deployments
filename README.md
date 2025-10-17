@@ -156,16 +156,6 @@ Testing notes
   - The server name/address lines that include pod details (useful to distinguish v1 vs v2 backends for traffic splitting).
 - Expect approximate distributions for weighted traffic (e.g., ~70/30 over multiple requests).
 
-Omitted example categories
---------------------------
-
-Per request, this repository omits examples related to:
-- client-settings-policy
-- externalname-service
-- helm
-- snippets-filter
-- upstream-settings-policy
-
 Troubleshooting
 ---------------
 
